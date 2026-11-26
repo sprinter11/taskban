@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taskban-v1';
+const CACHE_NAME = 'taskban-v2';
 const ASSETS = ['./', './index.html', './setup.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {

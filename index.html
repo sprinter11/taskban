@@ -2,52 +2,61 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Taskban</title>
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#2563eb" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root {
+      color-scheme: light dark;
       --bg: #f1f5f9; --surface: #ffffff; --col-bg: #e2e8f0;
       --text: #0f172a; --muted: #64748b; --border: #cbd5e1;
       --primary: #2563eb; --primary-hover: #1d4ed8; --danger: #dc2626;
-      --success: #16a34a; --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --success: #16a34a; --warning-bg: rgba(37, 99, 235, 0.1);
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #0b1120; --surface: #1e293b; --col-bg: #151f32;
         --text: #f8fafc; --muted: #94a3b8; --border: #334155;
         --primary: #3b82f6; --primary-hover: #2563eb; --danger: #ef4444;
-        --success: #22c55e; --shadow: 0 2px 6px rgba(0,0,0,0.4);
+        --success: #22c55e; --warning-bg: rgba(59, 130, 246, 0.16);
+        --shadow: 0 2px 6px rgba(0,0,0,0.4);
       }
     }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text); height: 100dvh;
       display: flex; flex-direction: column; overflow: hidden;
     }
+
+    /* Header */
     header {
       background: var(--surface); border-bottom: 1px solid var(--border);
-      padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px;
+      padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 8px;
       align-items: center; justify-content: space-between; z-index: 10;
     }
-    .header-left, .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .header-left, .header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .brand { font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 6px; }
     .badge {
-      font-size: 0.75rem; padding: 2px 8px; border-radius: 999px;
-      background: var(--col-bg); color: var(--muted); font-weight: 600;
+      font-size: 0.72rem; padding: 2px 8px; border-radius: 999px;
+      background: var(--col-bg); color: var(--muted); font-weight: 600; white-space: nowrap;
     }
-    .badge.online { background: rgba(22, 163, 74, 0.15); color: var(--success); }
+    .badge.online { background: rgba(22, 163, 74, 0.16); color: var(--success); }
+    .badge.cached { background: rgba(234, 179, 8, 0.16); color: #eab308; }
+
     select, input, textarea {
       background: var(--bg); color: var(--text); border: 1px solid var(--border);
-      border-radius: 8px; padding: 6px 10px; font-size: 0.9rem; font-family: inherit;
+      border-radius: 8px; padding: 7px 10px; font-size: 0.9rem; font-family: inherit;
+      min-height: 36px;
     }
     button {
       background: var(--surface); color: var(--text); border: 1px solid var(--border);
-      border-radius: 8px; padding: 6px 12px; font-size: 0.88rem; cursor: pointer;
-      font-weight: 500; transition: 0.15s;
+      border-radius: 8px; padding: 7px 11px; font-size: 0.86rem; cursor: pointer;
+      font-weight: 500; transition: 0.15s; min-height: 36px; display: inline-flex;
+      align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
     }
     button:hover { border-color: var(--primary); }
     button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -55,60 +64,95 @@
     button.danger { color: var(--danger); border-color: var(--danger); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinning { display: inline-block; animation: spin 0.9s linear infinite; }
+
+    /* Reconnect Banner */
+    .reconnect-banner {
+      display: none; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 8px 14px; background: var(--warning-bg); border-bottom: 1px solid var(--primary);
+      font-size: 0.85rem; flex-wrap: wrap;
+    }
+    .reconnect-banner.visible { display: flex; }
+
+    /* Mobile Column Tabs */
+    .mobile-col-tabs {
+      display: none; gap: 6px; padding: 8px 12px 4px; overflow-x: auto;
+      scrollbar-width: none; background: var(--bg);
+    }
+    .mobile-col-tabs::-webkit-scrollbar { display: none; }
+    .col-tab {
+      padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+      background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+      min-height: 32px;
+    }
+    .col-tab.active {
+      background: var(--primary); color: #fff; border-color: var(--primary);
+    }
+
+    /* Board & Columns */
     .board-container {
-      flex: 1; display: flex; gap: 14px; padding: 16px;
+      flex: 1; display: flex; gap: 14px; padding: 14px;
       overflow-x: auto; overflow-y: hidden; align-items: flex-start;
     }
     .column {
-      background: var(--col-bg); border-radius: 12px; width: 310px; min-width: 290px;
+      background: var(--col-bg); border-radius: 12px; width: 320px; min-width: 300px;
       max-height: 100%; display: flex; flex-direction: column; padding: 10px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border); flex-shrink: 0;
     }
     .column.drag-over { outline: 2px dashed var(--primary); }
     .col-header {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 4px 4px 10px; font-weight: 600; font-size: 0.95rem;
+      padding: 2px 4px 10px; font-weight: 600; font-size: 0.95rem; gap: 6px;
+    }
+    .col-header-actions { display: flex; align-items: center; gap: 6px; }
+    .col-clear-btn {
+      padding: 2px 7px; font-size: 0.74rem; min-height: 24px; color: var(--muted);
     }
     .col-cards {
       flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
       min-height: 60px; padding-right: 2px;
     }
     .add-col-btn {
-      min-width: 220px; height: 46px; border: 1px dashed var(--border);
+      min-width: 200px; height: 46px; border: 1px dashed var(--border);
       background: transparent; color: var(--muted); border-radius: 12px;
       font-weight: 600; flex-shrink: 0;
     }
     .add-col-btn:hover { color: var(--primary); border-color: var(--primary); }
+
+    /* Cards */
     .card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
       padding: 10px 12px; box-shadow: var(--shadow); cursor: grab;
     }
     .card:active { cursor: grabbing; }
-    .card-title { font-weight: 500; font-size: 0.95rem; margin-bottom: 6px; word-break: break-word; }
-    .card-notes { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; white-space: pre-wrap; }
+    .card-title { font-weight: 500; font-size: 0.95rem; margin-bottom: 6px; word-break: break-word; line-height: 1.35; }
+    .card-notes { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; white-space: pre-wrap; word-break: break-word; }
     .card-meta {
       display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
       justify-content: space-between; font-size: 0.76rem; color: var(--muted);
     }
     .pill {
-      background: var(--bg); padding: 2px 6px; border-radius: 6px;
+      background: var(--bg); padding: 2px 7px; border-radius: 6px;
       border: 1px solid var(--border);
     }
-    .card-actions { display: flex; gap: 4px; }
-    .card-actions button { padding: 2px 7px; font-size: 0.8rem; }
+    .card-actions { display: flex; gap: 4px; margin-left: auto; }
+    .card-actions button { padding: 3px 9px; font-size: 0.84rem; min-height: 30px; }
 
+    /* Modals */
     dialog {
       background: var(--surface); color: var(--text); border: 1px solid var(--border);
-      border-radius: 14px; padding: 20px; width: min(520px, 94vw);
+      border-radius: 14px; padding: 18px; width: min(520px, 95vw);
+      max-height: 92dvh; overflow-y: auto;
       box-shadow: 0 20px 40px rgba(0,0,0,0.35);
     }
     dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
-    .modal-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 14px; }
-    .form-group { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
-    .form-group label { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+    .modal-title { font-size: 1.12rem; font-weight: 700; margin: 0 0 14px; }
+    .form-group { margin-bottom: 12px; display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 0.84rem; color: var(--muted); font-weight: 500; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .modal-footer {
-      display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;
+      display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;
       padding-top: 12px; border-top: 1px solid var(--border);
     }
     .section-box {
@@ -116,10 +160,80 @@
       margin-bottom: 12px; background: var(--bg);
     }
     .section-box h4 { margin: 0 0 8px; font-size: 0.92rem; }
+
+    /* Custom Date Picker */
+    .date-input-wrap { display: flex; gap: 6px; align-items: center; }
+    .date-display-btn {
+      flex: 1; justify-content: space-between; text-align: left;
+      background: var(--bg); font-weight: 400; padding: 7px 10px;
+    }
+    .dp-popover {
+      display: none; margin-top: 6px; padding: 10px; border-radius: 10px;
+      background: var(--bg); border: 1px solid var(--border);
+    }
+    .dp-popover.open { display: block; }
+    .dp-presets {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;
+    }
+    .dp-presets button {
+      padding: 4px 8px; font-size: 0.78rem; min-height: 28px; border-radius: 6px;
+    }
+    .dp-nav {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px; font-weight: 600; font-size: 0.9rem;
+    }
+    .dp-nav button { padding: 3px 9px; min-height: 28px; }
+    .dp-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center;
+    }
+    .dp-dow {
+      font-size: 0.74rem; color: var(--muted); font-weight: 600; padding: 3px 0;
+    }
+    .dp-day {
+      padding: 6px 0; min-height: 32px; border-radius: 7px; font-size: 0.84rem;
+      border: 1px solid transparent; background: transparent;
+    }
+    .dp-day:hover { border-color: var(--primary); }
+    .dp-day.today { border-color: var(--primary); font-weight: 700; }
+    .dp-day.selected { background: var(--primary); color: #fff; font-weight: 700; }
+    .dp-day.other-month { opacity: 0.35; }
+
+    /* Footer */
     .status-bar {
-      font-size: 0.78rem; color: var(--muted); padding: 4px 16px;
+      font-size: 0.76rem; color: var(--muted); padding: 5px 14px;
       background: var(--surface); border-top: 1px solid var(--border);
-      display: flex; justify-content: space-between;
+      display: flex; justify-content: space-between; gap: 8px;
+    }
+    #status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Responsive Mobile Adaptation */
+    @media (max-width: 768px) {
+      header { padding: 8px 10px; gap: 6px; }
+      .header-left, .header-right { width: 100%; justify-content: space-between; }
+      #board-select { flex: 1; min-width: 110px; max-width: 180px; }
+      .btn-label-desktop { display: none; }
+      .mobile-col-tabs { display: flex; }
+      .board-container {
+        padding: 8px 10px 12px; gap: 10px;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+      }
+      .column {
+        width: 88vw; min-width: 88vw;
+        scroll-snap-align: center;
+      }
+      .add-col-btn {
+        min-width: 72vw;
+        scroll-snap-align: center;
+      }
+      dialog {
+        width: 100vw; max-width: 100vw; margin: auto 0 0 0;
+        border-radius: 16px 16px 0 0; padding: 16px;
+      }
+    }
+    @media (max-width: 500px) {
+      .form-row { grid-template-columns: 1fr; }
+      .card-actions button { padding: 4px 11px; min-height: 34px; }
     }
   </style>
 </head>
@@ -133,27 +247,42 @@
     </div>
     <select id="board-select" title="Выбор доски"></select>
     <button type="button" onclick="openNewBoardPrompt()" title="Новая доска">+ Доска</button>
-    <select id="filter-assignee" title="Фильтр по исполнителю" onchange="renderBoard()">
-      <option value="all">Все задачи</option>
-      <option value="mine">Только мои</option>
-    </select>
+    <button type="button" class="primary" onclick="openTaskModal()">+ Задача</button>
   </div>
 
   <div class="header-right">
-    <button type="button" class="primary" onclick="openTaskModal()">+ Задача</button>
-    <button type="button" id="sync-btn" onclick="manualSync()" style="display:none;">↻ Синхронизировать</button>
-    <button type="button" id="share-btn" onclick="copyInviteLink()" style="display:none;">Поделиться</button>
-    <button type="button" onclick="openSettingsModal()">⚙ Google / Настройки</button>
+    <select id="filter-assignee" title="Фильтр задач" onchange="renderBoard()">
+      <option value="all">Все задачи</option>
+      <option value="active_only">Без готовых</option>
+      <option value="mine">Только мои</option>
+    </select>
+    <button type="button" id="sync-btn" onclick="manualSync()" style="display:none;" title="Синхронизировать">
+      <span id="sync-icon">↻</span><span class="btn-label-desktop"> Синк</span>
+    </button>
+    <button type="button" id="share-btn" onclick="copyInviteLink()" style="display:none;" title="Поделиться доской">
+      🔗<span class="btn-label-desktop"> Поделиться</span>
+    </button>
+    <button type="button" onclick="openSettingsModal()" title="Настройки Google">
+      ⚙<span class="btn-label-desktop"> Настройки</span>
+    </button>
   </div>
 </header>
+
+<div id="reconnect-banner" class="reconnect-banner">
+  <span id="reconnect-text">Общая доска подключена. Подтвердите сессию Google для синхронизации.</span>
+  <button type="button" class="primary" onclick="connectGoogle(false)">Продолжить с Google</button>
+</div>
+
+<nav id="mobile-col-tabs" class="mobile-col-tabs" aria-label="Колонки доски"></nav>
 
 <main class="board-container" id="board-container"></main>
 
 <footer class="status-bar">
-  <span id="status-text">Готово к работе (данные хранятся в браузере)</span>
+  <span id="status-text">Готово к работе</span>
   <span id="user-email-label"></span>
 </footer>
 
+<!-- Модальное окно задачи -->
 <dialog id="task-modal">
   <h3 class="modal-title" id="task-modal-title">Новая задача</h3>
   <form id="task-form" onsubmit="saveTaskFromModal(event)">
@@ -175,7 +304,28 @@
     <div class="form-row">
       <div class="form-group">
         <label>Дата (попадёт в Google Календарь)</label>
-        <input type="date" id="task-due-date" />
+        <input type="hidden" id="task-due-date" />
+        <div class="date-input-wrap">
+          <button type="button" id="date-picker-trigger" class="date-display-btn" onclick="toggleDatePicker()">
+            <span id="date-display-text">Без даты</span>
+            <span>📅</span>
+          </button>
+          <button type="button" id="date-clear-btn" onclick="setPickedDate('')" title="Очистить дату" style="display:none; padding:7px 9px;">✕</button>
+        </div>
+        <div id="custom-datepicker" class="dp-popover">
+          <div class="dp-presets">
+            <button type="button" onclick="pickRelativeDays(0)">Сегодня</button>
+            <button type="button" onclick="pickRelativeDays(1)">Завтра</button>
+            <button type="button" onclick="pickNextWeekend()">Суббота</button>
+            <button type="button" onclick="pickRelativeDays(7)">+7 дней</button>
+          </div>
+          <div class="dp-nav">
+            <button type="button" onclick="shiftCalendarMonth(-1)">‹</button>
+            <span id="dp-month-label"></span>
+            <button type="button" onclick="shiftCalendarMonth(1)">›</button>
+          </div>
+          <div class="dp-grid" id="dp-grid"></div>
+        </div>
       </div>
       <div class="form-group">
         <label>Время (сохраняется в заметке)</label>
@@ -196,41 +346,42 @@
   </form>
 </dialog>
 
+<!-- Модальное окно настроек Google -->
 <dialog id="settings-modal">
   <h3 class="modal-title">Настройки Google и синхронизации</h3>
 
   <div class="section-box">
     <h4>1. Google OAuth Client ID (BYO)</h4>
     <p style="font-size:0.83rem; color:var(--muted); margin:0 0 8px;">
-      Укажите свой Client ID из Google Cloud или откройте готовую инвайт-ссылку.
-      <a href="./setup.html" target="_blank" style="color:var(--primary);">Инструкция по получению (3 мин) →</a>
+      Укажите свой Client ID из Google Cloud или откройте готовую инвайт-ссылку один раз — настройки сохранятся навсегда.
+      <a href="./setup.html" target="_blank" style="color:var(--primary);">Инструкция (3 мин) →</a>
     </p>
-    <div style="display:flex; gap:8px;">
-      <input type="text" id="cfg-client-id" style="flex:1;" placeholder="123456-xxxx.apps.googleusercontent.com" />
-      <button type="button" class="primary" onclick="connectGoogle()">Войти в Google</button>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="cfg-client-id" style="flex:1; min-width:200px;" placeholder="123456-xxxx.apps.googleusercontent.com" />
+      <button type="button" class="primary" onclick="connectGoogle(false)">Войти в Google</button>
     </div>
-    <div id="auth-controls" style="margin-top:8px; display:none; justify-content:space-between; align-items:center;">
+    <div id="auth-controls" style="margin-top:8px; display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
       <span style="font-size:0.83rem; color:var(--success);" id="auth-user-info"></span>
-      <button type="button" onclick="signOutGoogle()">Выйти (перейти в локальный режим)</button>
+      <button type="button" onclick="signOutGoogle()">Отключить Google</button>
     </div>
   </div>
 
   <div class="section-box" id="workspace-section" style="display:none;">
     <h4>2. Общая Google Таблица (база досок)</h4>
-    <div style="display:flex; gap:8px; margin-bottom:8px;">
-      <input type="text" id="cfg-sheet-id" style="flex:1;" placeholder="ID Google Таблицы" />
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <input type="text" id="cfg-sheet-id" style="flex:1; min-width:180px;" placeholder="ID Google Таблицы" />
       <button type="button" onclick="attachExistingSheet()">Подключить ID</button>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button type="button" class="primary" onclick="createNewWorkspaceSheet()">+ Создать новую таблицу</button>
-      <button type="button" id="open-sheet-btn" onclick="openSheetInBrowser()" style="display:none;">Открыть таблицу в Google (доступ)</button>
+      <button type="button" id="open-sheet-btn" onclick="openSheetInBrowser()" style="display:none;">Открыть таблицу (доступ)</button>
     </div>
   </div>
 
   <div class="section-box" id="tasklist-section" style="display:none;">
     <h4>3. Синхронизация текущей доски с Google Tasks</h4>
     <p style="font-size:0.82rem; color:var(--muted); margin:0 0 6px;">
-      Выберите список в ваших Google Задачи для текущей доски (задачи со сроком появятся в Google Календаре):
+      Новые активные задачи из выбранного списка Google Задач попадают на доску, а задачи с датой — в Google Календарь:
     </p>
     <select id="cfg-tasklist-select" style="width:100%;" onchange="saveBoardTasklistMapping()"></select>
   </div>
@@ -249,19 +400,24 @@ const DEFAULT_COLUMNS = [
 ];
 
 const state = {
-  mode: 'local',
+  mode: 'local', // 'local' | 'cached' | 'google'
   clientId: '',
   accessToken: '',
   userEmail: '',
   sheetId: '',
   activeBoardId: 'board_default',
+  activeMobileColId: 'todo',
   boards: [],
   tasks: [],
   syncMap: [],
   taskLists: [],
   syncTimer: null,
+  refreshTimer: null,
   isSyncing: false,
-  syncQueued: false
+  syncQueued: false,
+  lastFocusSync: 0,
+  dpYear: new Date().getFullYear(),
+  dpMonth: new Date().getMonth()
 };
 
 function setStatus(msg) {
@@ -287,12 +443,36 @@ function parseHashParams() {
 }
 
 function updateHashParams() {
-  if (state.mode !== 'google' || !state.sheetId) return;
+  if (!state.clientId || !state.sheetId) return;
   const params = new URLSearchParams();
-  if (state.clientId) params.set('client_id', state.clientId);
-  if (state.sheetId) params.set('sheet', state.sheetId);
+  params.set('client_id', state.clientId);
+  params.set('sheet', state.sheetId);
   if (state.activeBoardId) params.set('board', state.activeBoardId);
   history.replaceState(null, '', '#' + params.toString());
+}
+
+function savePersistentConfig() {
+  if (state.clientId) localStorage.setItem('kb_client_id', state.clientId);
+  if (state.sheetId) localStorage.setItem('kb_sheet_id', state.sheetId);
+  if (state.activeBoardId) localStorage.setItem('kb_active_board_id', state.activeBoardId);
+  if (state.userEmail) localStorage.setItem('kb_user_email', state.userEmail);
+}
+
+function saveGoogleWorkspaceCache() {
+  if (!state.sheetId) return;
+  localStorage.setItem(`kb_ws_cache_${state.sheetId}`, JSON.stringify({
+    boards: state.boards,
+    tasks: state.tasks,
+    syncMap: state.syncMap
+  }));
+}
+
+function loadGoogleWorkspaceCache(sheetId) {
+  try {
+    return JSON.parse(localStorage.getItem(`kb_ws_cache_${sheetId}`) || 'null');
+  } catch {
+    return null;
+  }
 }
 
 function packNotesWithTime(notes, dueTime) {
@@ -309,6 +489,115 @@ function unpackNotesAndTime(rawNotes) {
   return { notes: cleanNotes, dueTime };
 }
 
+/**
+ * ============================================================================
+ * 1. CUSTOM DATE PICKER
+ * ============================================================================
+ */
+const MONTHS_RU = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+];
+const DOW_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+function formatDateISO(dateObj) {
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateHuman(isoStr) {
+  if (!isoStr) return 'Без даты';
+  const [y, m, d] = isoStr.split('-').map(Number);
+  if (!y || !m || !d) return isoStr;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function setPickedDate(isoStr) {
+  document.getElementById('task-due-date').value = isoStr || '';
+  document.getElementById('date-display-text').textContent = formatDateHuman(isoStr);
+  document.getElementById('date-clear-btn').style.display = isoStr ? 'inline-flex' : 'none';
+  if (isoStr) {
+    const [y, m] = isoStr.split('-').map(Number);
+    state.dpYear = y;
+    state.dpMonth = m - 1;
+  }
+  renderDatePickerGrid();
+  document.getElementById('custom-datepicker').classList.remove('open');
+}
+
+function toggleDatePicker() {
+  const pop = document.getElementById('custom-datepicker');
+  const current = document.getElementById('task-due-date').value;
+  if (current) {
+    const [y, m] = current.split('-').map(Number);
+    state.dpYear = y;
+    state.dpMonth = m - 1;
+  } else {
+    const now = new Date();
+    state.dpYear = now.getFullYear();
+    state.dpMonth = now.getMonth();
+  }
+  renderDatePickerGrid();
+  pop.classList.toggle('open');
+}
+
+function shiftCalendarMonth(delta) {
+  state.dpMonth += delta;
+  if (state.dpMonth < 0) { state.dpMonth = 11; state.dpYear -= 1; }
+  if (state.dpMonth > 11) { state.dpMonth = 0; state.dpYear += 1; }
+  renderDatePickerGrid();
+}
+
+function pickRelativeDays(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  setPickedDate(formatDateISO(d));
+}
+
+function pickNextWeekend() {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun .. 6=Sat
+  const diff = day === 6 ? 7 : (6 - day);
+  d.setDate(d.getDate() + diff);
+  setPickedDate(formatDateISO(d));
+}
+
+function renderDatePickerGrid() {
+  document.getElementById('dp-month-label').textContent = `${MONTHS_RU[state.dpMonth]} ${state.dpYear}`;
+  const grid = document.getElementById('dp-grid');
+  const selectedIso = document.getElementById('task-due-date').value;
+  const todayIso = formatDateISO(new Date());
+
+  let html = DOW_RU.map((d) => `<div class="dp-dow">${d}</div>`).join('');
+
+  const firstDay = new Date(state.dpYear, state.dpMonth, 1);
+  const startOffset = (firstDay.getDay() + 6) % 7; // Mon=0..Sun=6
+  const daysInMonth = new Date(state.dpYear, state.dpMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(state.dpYear, state.dpMonth, 0).getDate();
+
+  for (let i = startOffset - 1; i >= 0; i--) {
+    html += `<button type="button" class="dp-day other-month" disabled>${prevMonthDays - i}</button>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${state.dpYear}-${String(state.dpMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const cls = ['dp-day'];
+    if (iso === todayIso) cls.push('today');
+    if (iso === selectedIso) cls.push('selected');
+    html += `<button type="button" class="${cls.join(' ')}" onclick="setPickedDate('${iso}')">${day}</button>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+/**
+ * ============================================================================
+ * 2. LOCAL STORAGE ADAPTER
+ * ============================================================================
+ */
 const LocalStorageAdapter = {
   KEY_BOARDS: 'kb_local_boards_v1',
   KEY_TASKS: 'kb_local_tasks_v1',
@@ -329,7 +618,7 @@ const LocalStorageAdapter = {
         column_id: 'todo',
         order: 1,
         title: 'Подключить Google для совместной работы',
-        notes: 'Нажмите «Google / Настройки» в правом верхнем углу',
+        notes: 'Нажмите ⚙ в правом верхнем углу и укажите Client ID',
         due_date: '',
         due_time: '',
         assignees: '',
@@ -368,6 +657,11 @@ const LocalStorageAdapter = {
   }
 };
 
+/**
+ * ============================================================================
+ * 3. GOOGLE SHEETS ADAPTER
+ * ============================================================================
+ */
 const GoogleSheetsAdapter = {
   async api(url, options = {}) {
     const res = await fetch(url, {
@@ -380,7 +674,9 @@ const GoogleSheetsAdapter = {
     });
     if (res.status === 401) {
       sessionStorage.removeItem('kb_access_token');
-      throw new Error('Токен Google истёк. Нажмите «Войти в Google» для продления.');
+      sessionStorage.removeItem('kb_token_exp');
+      showReconnectBanner('Сессия Google истекла (действует 1 час). Нажмите для продолжения.');
+      throw new Error('Токен Google истёк.');
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -488,6 +784,7 @@ const GoogleSheetsAdapter = {
     const m = (res.updates?.updatedRange || '').match(/!A(\d+):/);
     if (m) board._row = Number(m[1]);
     state.boards.push(board);
+    saveGoogleWorkspaceCache();
     return board;
   },
 
@@ -502,6 +799,7 @@ const GoogleSheetsAdapter = {
         })
       }
     );
+    saveGoogleWorkspaceCache();
     return board;
   },
 
@@ -525,33 +823,58 @@ const GoogleSheetsAdapter = {
       const updatedRange = res.updates?.updatedRange || '';
       const rowMatch = updatedRange.match(/!A(\d+):/);
       if (rowMatch) task._row = Number(rowMatch[1]);
-      state.tasks.push(task);
+      if (!state.tasks.some((t) => t.task_id === task.task_id)) {
+        state.tasks.push(task);
+      }
     }
+    saveGoogleWorkspaceCache();
     return task;
   },
 
-  async upsertSyncEntry(entry) {
-    const rowValues = [
-      entry.task_id, entry.user_email, entry.google_tasklist_id,
-      entry.google_task_id, entry.last_synced_at
-    ];
-    if (entry._row) {
-      await this.api(
-        `https://sheets.googleapis.com/v4/spreadsheets/${state.sheetId}/values/sync_map!A${entry._row}:E${entry._row}?valueInputOption=RAW`,
-        { method: 'PUT', body: JSON.stringify({ values: [rowValues] }) }
-      );
-    } else {
-      const res = await this.api(
-        `https://sheets.googleapis.com/v4/spreadsheets/${state.sheetId}/values/sync_map!A:E:append?valueInputOption=RAW`,
-        { method: 'POST', body: JSON.stringify({ values: [rowValues] }) }
-      );
-      const m = (res.updates?.updatedRange || '').match(/!A(\d+):/);
-      if (m) entry._row = Number(m[1]);
-      state.syncMap.push(entry);
-    }
+  async batchAppendTasks(tasksList) {
+    if (!tasksList.length) return;
+    const values = tasksList.map((task) => [
+      task.task_id, task.board_id, task.column_id, String(task.order || 0),
+      task.title, task.notes || '', task.due_date || '', task.due_time || '',
+      task.assignees || '', task.status || 'active', task.updated_at, task.meta_json || '{}'
+    ]);
+    const res = await this.api(
+      `https://sheets.googleapis.com/v4/spreadsheets/${state.sheetId}/values/tasks!A:L:append?valueInputOption=RAW`,
+      { method: 'POST', body: JSON.stringify({ values }) }
+    );
+    const startMatch = (res.updates?.updatedRange || '').match(/!A(\d+):/);
+    const startRow = startMatch ? Number(startMatch[1]) : 0;
+    tasksList.forEach((t, idx) => {
+      if (startRow) t._row = startRow + idx;
+      state.tasks.push(t);
+    });
+    saveGoogleWorkspaceCache();
+  },
+
+  async batchAppendSyncEntries(entriesList) {
+    if (!entriesList.length) return;
+    const values = entriesList.map((e) => [
+      e.task_id, e.user_email, e.google_tasklist_id, e.google_task_id, e.last_synced_at
+    ]);
+    const res = await this.api(
+      `https://sheets.googleapis.com/v4/spreadsheets/${state.sheetId}/values/sync_map!A:E:append?valueInputOption=RAW`,
+      { method: 'POST', body: JSON.stringify({ values }) }
+    );
+    const startMatch = (res.updates?.updatedRange || '').match(/!A(\d+):/);
+    const startRow = startMatch ? Number(startMatch[1]) : 0;
+    entriesList.forEach((e, idx) => {
+      if (startRow) e._row = startRow + idx;
+      state.syncMap.push(e);
+    });
+    saveGoogleWorkspaceCache();
   }
 };
 
+/**
+ * ============================================================================
+ * 4. GOOGLE TASKS TWO-WAY SYNC
+ * ============================================================================
+ */
 const GoogleTasksSync = {
   async fetchTaskLists() {
     const res = await GoogleSheetsAdapter.api('https://tasks.googleapis.com/tasks/v1/users/@me/lists');
@@ -579,7 +902,15 @@ const GoogleTasksSync = {
   },
 
   getMappedTaskListId(boardId) {
-    return localStorage.getItem(`kb_tl_map_${boardId}`) || '@default';
+    const saved = localStorage.getItem(`kb_tl_map_${boardId}`);
+    const defaultListId = state.taskLists[0]?.id || '@default';
+    if (!saved || saved === '@default') {
+      if (state.taskLists[0]?.id) {
+        localStorage.setItem(`kb_tl_map_${boardId}`, state.taskLists[0].id);
+      }
+      return defaultListId;
+    }
+    return saved;
   },
 
   isTaskRelevantForUser(task) {
@@ -597,7 +928,9 @@ const GoogleTasksSync = {
 
     state.isSyncing = true;
     state.syncQueued = false;
-    setStatus('Синхронизация с Google Sheets и Google Tasks...');
+    const syncIcon = document.getElementById('sync-icon');
+    if (syncIcon) syncIcon.classList.add('spinning');
+    setStatus('Синхронизация с Google...');
 
     try {
       const fresh = await GoogleSheetsAdapter.loadWorkspace();
@@ -610,20 +943,25 @@ const GoogleTasksSync = {
       const gTasks = await this.fetchAllTasksInList(tasklistId);
       const gTaskById = new Map(gTasks.map((t) => [t.id, t]));
 
+      const defaultId = state.taskLists[0]?.id;
       const userSyncRows = state.syncMap.filter(
-        (m) => m.user_email.toLowerCase() === state.userEmail.toLowerCase() && m.google_tasklist_id === tasklistId
+        (m) =>
+          m.user_email.toLowerCase() === state.userEmail.toLowerCase() &&
+          (m.google_tasklist_id === tasklistId || (tasklistId === defaultId && m.google_tasklist_id === '@default'))
       );
       const syncByTaskId = new Map(userSyncRows.map((m) => [m.task_id, m]));
       const syncByGoogleId = new Map(userSyncRows.map((m) => [m.google_task_id, m]));
 
       const boardTasks = state.tasks.filter((t) => t.board_id === boardId);
+      const newSyncEntriesToCreate = [];
 
+      // 1. Таблица -> Google Tasks
       for (const task of boardTasks) {
         const mapping = syncByTaskId.get(task.task_id);
         const relevant = this.isTaskRelevantForUser(task);
 
         if (!mapping) {
-          if (task.status === 'deleted' || !relevant) continue;
+          if (task.status !== 'active' || !relevant) continue;
           const payload = {
             title: task.title,
             notes: packNotesWithTime(task.notes, task.due_time),
@@ -635,7 +973,7 @@ const GoogleTasksSync = {
             `https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(tasklistId)}/tasks`,
             { method: 'POST', body: JSON.stringify(payload) }
           );
-          await GoogleSheetsAdapter.upsertSyncEntry({
+          newSyncEntriesToCreate.push({
             task_id: task.task_id,
             user_email: state.userEmail,
             google_tasklist_id: tasklistId,
@@ -656,6 +994,8 @@ const GoogleTasksSync = {
           }
           continue;
         }
+
+        if (task.status === 'archived') continue;
 
         if (!gTask || gTask.deleted) {
           task.status = 'deleted';
@@ -699,8 +1039,10 @@ const GoogleTasksSync = {
         }
       }
 
+      // 2. Импорт ТОЛЬКО новых АКТИВНЫХ задач из Google Tasks (старые выполненные не тянем!)
+      const importedTasks = [];
       for (const gTask of gTasks) {
-        if (gTask.deleted || !gTask.title) continue;
+        if (gTask.deleted || gTask.hidden || gTask.status === 'completed' || !gTask.title) continue;
         if (syncByGoogleId.has(gTask.id)) continue;
 
         const isChatTask = gTask.assignmentInfo?.surfaceType === 'SPACE';
@@ -708,8 +1050,8 @@ const GoogleTasksSync = {
         const newTask = {
           task_id: uid('t'),
           board_id: boardId,
-          column_id: gTask.status === 'completed' ? 'done' : 'todo',
-          order: Date.now(),
+          column_id: 'todo',
+          order: Date.now() + importedTasks.length,
           title: gTask.title,
           notes: unpacked.notes,
           due_date: gTask.due ? gTask.due.slice(0, 10) : '',
@@ -720,8 +1062,8 @@ const GoogleTasksSync = {
           meta_json: JSON.stringify({ isChatTask })
         };
 
-        await GoogleSheetsAdapter.upsertTask(newTask);
-        await GoogleSheetsAdapter.upsertSyncEntry({
+        importedTasks.push(newTask);
+        newSyncEntriesToCreate.push({
           task_id: newTask.task_id,
           user_email: state.userEmail,
           google_tasklist_id: tasklistId,
@@ -730,11 +1072,26 @@ const GoogleTasksSync = {
         });
       }
 
+      if (importedTasks.length) {
+        await GoogleSheetsAdapter.batchAppendTasks(importedTasks);
+      }
+      if (newSyncEntriesToCreate.length) {
+        await GoogleSheetsAdapter.batchAppendSyncEntries(newSyncEntriesToCreate);
+      }
+
+      saveGoogleWorkspaceCache();
       renderBoardSelect();
       renderBoard();
-      setStatus(`Синхронизировано в ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setStatus(
+        importedTasks.length
+          ? `Синхронизировано (${timeStr}) • +${importedTasks.length} из Google`
+          : `Синхронизировано в ${timeStr}`
+      );
     } finally {
       state.isSyncing = false;
+      if (syncIcon) syncIcon.classList.remove('spinning');
       if (state.syncQueued) {
         this.syncCurrentBoard();
       }
@@ -742,18 +1099,33 @@ const GoogleTasksSync = {
   }
 };
 
+/**
+ * ============================================================================
+ * 5. GOOGLE AUTH (GIS) & PERSISTENT SESSION
+ * ============================================================================
+ */
+function showReconnectBanner(text) {
+  const banner = document.getElementById('reconnect-banner');
+  document.getElementById('reconnect-text').textContent = text;
+  banner.classList.add('visible');
+}
+
+function hideReconnectBanner() {
+  document.getElementById('reconnect-banner').classList.remove('visible');
+}
+
 function connectGoogle(silent = false) {
   const inputVal = document.getElementById('cfg-client-id').value.trim();
   const clientId = inputVal || state.clientId;
   if (!clientId) {
-    alert('Введите Google Client ID или откройте инструкцию setup.html');
+    if (!silent) alert('Введите Google Client ID или откройте инструкцию setup.html');
     return;
   }
   state.clientId = clientId;
-  localStorage.setItem('kb_client_id', clientId);
+  savePersistentConfig();
 
   if (!window.google?.accounts?.oauth2) {
-    alert('Библиотека Google Identity ещё загружается, попробуйте через секунду.');
+    if (!silent) alert('Библиотека Google Identity ещё загружается, попробуйте через секунду.');
     return;
   }
 
@@ -762,32 +1134,48 @@ function connectGoogle(silent = false) {
     scope: SCOPES,
     callback: async (resp) => {
       if (resp.error) {
-        setStatus('Ошибка авторизации: ' + resp.error);
+        if (!silent) setStatus('Ошибка авторизации: ' + resp.error);
         return;
       }
       state.accessToken = resp.access_token;
-      const expiresAt = Date.now() + (Number(resp.expires_in || 3500) * 1000);
+      const expiresIn = Number(resp.expires_in || 3500);
+      const expiresAt = Date.now() + expiresIn * 1000;
       sessionStorage.setItem('kb_access_token', resp.access_token);
       sessionStorage.setItem('kb_token_exp', String(expiresAt));
+      hideReconnectBanner();
+
+      // Автообновление токена за 2 минуты до истечения, пока вкладка открыта
+      if (state.refreshTimer) clearTimeout(state.refreshTimer);
+      state.refreshTimer = setTimeout(() => {
+        if (document.visibilityState === 'visible' && state.mode === 'google') {
+          connectGoogle(true);
+        }
+      }, Math.max(60000, (expiresIn - 120) * 1000));
+
       await activateGoogleMode();
     }
   });
 
-  tokenClient.requestAccessToken({ prompt: silent ? '' : 'consent' });
+  const reqOpts = { prompt: silent ? '' : 'select_account' };
+  const savedEmail = state.userEmail || localStorage.getItem('kb_user_email') || '';
+  if (savedEmail) reqOpts.login_hint = savedEmail;
+
+  tokenClient.requestAccessToken(reqOpts);
 }
 
 async function activateGoogleMode() {
   try {
-    setStatus('Загрузка профиля Google...');
+    setStatus('Подключение к Google...');
     const userInfo = await GoogleSheetsAdapter.api('https://www.googleapis.com/oauth2/v3/userinfo');
     state.userEmail = userInfo.email || '';
     state.mode = 'google';
+    savePersistentConfig();
 
     await GoogleTasksSync.fetchTaskLists();
 
     const badge = document.getElementById('mode-badge');
     badge.textContent = 'Google Cloud';
-    badge.classList.add('online');
+    badge.className = 'badge online';
     document.getElementById('user-email-label').textContent = state.userEmail;
     document.getElementById('auth-controls').style.display = 'flex';
     document.getElementById('auth-user-info').textContent = `Вы вошли как ${state.userEmail}`;
@@ -809,7 +1197,7 @@ async function createNewWorkspaceSheet() {
     setStatus('Создание Google Таблицы...');
     const sheetId = await GoogleSheetsAdapter.createSpreadsheet('Taskban Workspace');
     state.sheetId = sheetId;
-    localStorage.setItem('kb_sheet_id', sheetId);
+    savePersistentConfig();
     document.getElementById('cfg-sheet-id').value = sheetId;
     await loadGoogleWorkspace();
     document.getElementById('settings-modal').close();
@@ -822,7 +1210,7 @@ async function attachExistingSheet() {
   const id = document.getElementById('cfg-sheet-id').value.trim();
   if (!id) return;
   state.sheetId = id;
-  localStorage.setItem('kb_sheet_id', id);
+  savePersistentConfig();
   await loadGoogleWorkspace();
 }
 
@@ -837,9 +1225,12 @@ async function loadGoogleWorkspace() {
       state.activeBoardId = state.boards[0].board_id;
     }
 
-    document.getElementById('sync-btn').style.display = 'inline-block';
-    document.getElementById('share-btn').style.display = 'inline-block';
-    document.getElementById('open-sheet-btn').style.display = 'inline-block';
+    savePersistentConfig();
+    saveGoogleWorkspaceCache();
+
+    document.getElementById('sync-btn').style.display = 'inline-flex';
+    document.getElementById('share-btn').style.display = 'inline-flex';
+    document.getElementById('open-sheet-btn').style.display = 'inline-flex';
     document.getElementById('tasklist-section').style.display = 'block';
 
     populateTaskListSelector();
@@ -856,21 +1247,28 @@ async function loadGoogleWorkspace() {
       }
     }, 60000);
   } catch (err) {
-    alert('Ошибка доступа к таблице (убедитесь, что владелец выдал вам доступ на редактирование): ' + err.message);
+    alert('Ошибка доступа к таблице (убедитесь, что владелец выдал вам доступ «Редактор»): ' + err.message);
   }
 }
 
 function signOutGoogle() {
   sessionStorage.removeItem('kb_access_token');
   sessionStorage.removeItem('kb_token_exp');
+  localStorage.removeItem('kb_client_id');
+  localStorage.removeItem('kb_sheet_id');
+  localStorage.removeItem('kb_active_board_id');
+  localStorage.removeItem('kb_user_email');
   if (state.syncTimer) clearInterval(state.syncTimer);
-  state.mode = 'local';
-  state.accessToken = '';
-  state.userEmail = '';
+  if (state.refreshTimer) clearTimeout(state.refreshTimer);
   location.hash = '';
   location.reload();
 }
 
+/**
+ * ============================================================================
+ * 6. BOARD RENDERING, MOBILE TABS & TASK ACTIONS
+ * ============================================================================
+ */
 function activeAdapter() {
   return state.mode === 'google' ? GoogleSheetsAdapter : LocalStorageAdapter;
 }
@@ -886,6 +1284,7 @@ function renderBoardSelect() {
     .join('');
   sel.onchange = () => {
     state.activeBoardId = sel.value;
+    savePersistentConfig();
     updateHashParams();
     populateTaskListSelector();
     renderBoard();
@@ -893,19 +1292,48 @@ function renderBoardSelect() {
   };
 }
 
+function scrollToMobileColumn(colId) {
+  state.activeMobileColId = colId;
+  const colEl = document.querySelector(`.column[data-col-id="${colId}"]`);
+  if (colEl) {
+    colEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }
+  updateMobileTabsHighlight();
+}
+
+function updateMobileTabsHighlight() {
+  document.querySelectorAll('.col-tab').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.colId === state.activeMobileColId);
+  });
+}
+
 function renderBoard() {
   const container = document.getElementById('board-container');
+  const tabsNav = document.getElementById('mobile-col-tabs');
   const board = getActiveBoard();
   if (!board) return;
 
+  if (!board.columns.some((c) => c.id === state.activeMobileColId) && board.columns.length) {
+    state.activeMobileColId = board.columns[0].id;
+  }
+
   const filterMode = document.getElementById('filter-assignee').value;
   const boardTasks = state.tasks.filter((t) => {
-    if (t.board_id !== board.board_id || t.status === 'deleted') return false;
+    if (t.board_id !== board.board_id) return false;
+    if (t.status === 'deleted' || t.status === 'archived') return false;
+    if (filterMode === 'active_only' && t.column_id === 'done') return false;
     if (filterMode === 'mine' && state.userEmail) {
       return (t.assignees || '').toLowerCase().includes(state.userEmail.toLowerCase());
     }
     return true;
   });
+
+  // Render mobile column tabs
+  tabsNav.innerHTML = board.columns.map((col) => {
+    const cnt = boardTasks.filter((t) => t.column_id === col.id).length;
+    const isAct = col.id === state.activeMobileColId ? 'active' : '';
+    return `<button type="button" class="col-tab ${isAct}" data-col-id="${col.id}" onclick="scrollToMobileColumn('${col.id}')">${escapeHtml(col.name)} (${cnt})</button>`;
+  }).join('');
 
   container.innerHTML = '';
   board.columns.forEach((col, colIndex) => {
@@ -926,10 +1354,17 @@ function renderBoard() {
       .filter((t) => t.column_id === col.id)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
+    const archiveBtnHtml = (col.id === 'done' && colTasks.length > 0)
+      ? `<button type="button" class="col-clear-btn" onclick="archiveDoneTasks()" title="Скрыть выполненные с доски">Очистить</button>`
+      : '';
+
     colEl.innerHTML = `
       <div class="col-header">
         <span>${escapeHtml(col.name)}</span>
-        <span class="badge">${colTasks.length}</span>
+        <div class="col-header-actions">
+          ${archiveBtnHtml}
+          <span class="badge">${colTasks.length}</span>
+        </div>
       </div>
       <div class="col-cards"></div>
     `;
@@ -945,7 +1380,7 @@ function renderBoard() {
       const nextCol = board.columns[colIndex + 1];
 
       const dueBadge = task.due_date
-        ? `<span class="pill">📅 ${task.due_date}${task.due_time ? ' ' + task.due_time : ''}</span>`
+        ? `<span class="pill">📅 ${formatDateHuman(task.due_date)}${task.due_time ? ' ' + task.due_time : ''}</span>`
         : '';
       const assigneeBadge = task.assignees
         ? `<span class="pill">👤 ${escapeHtml(task.assignees)}</span>`
@@ -975,6 +1410,37 @@ function renderBoard() {
   addColBtn.textContent = '+ Колонка';
   addColBtn.onclick = addColumnToCurrentBoard;
   container.appendChild(addColBtn);
+
+  // Sync active mobile tab on horizontal swipe
+  container.onscroll = () => {
+    const center = container.scrollLeft + container.clientWidth / 2;
+    for (const el of container.querySelectorAll('.column')) {
+      if (center >= el.offsetLeft && center <= el.offsetLeft + el.offsetWidth) {
+        if (state.activeMobileColId !== el.dataset.colId) {
+          state.activeMobileColId = el.dataset.colId;
+          updateMobileTabsHighlight();
+        }
+        break;
+      }
+    }
+  };
+}
+
+async function archiveDoneTasks() {
+  const board = getActiveBoard();
+  if (!board) return;
+  const doneTasks = state.tasks.filter(
+    (t) => t.board_id === board.board_id && t.column_id === 'done' && t.status === 'active'
+  );
+  if (!doneTasks.length) return;
+  if (!confirm(`Скрыть выполненные задачи (${doneTasks.length} шт.) с доски? В истории Google Tasks они останутся.`)) return;
+
+  for (const t of doneTasks) {
+    t.status = 'archived';
+    t.updated_at = new Date().toISOString();
+    await activeAdapter().upsertTask(t);
+  }
+  renderBoard();
 }
 
 async function addColumnToCurrentBoard() {
@@ -1003,7 +1469,9 @@ function openTaskModal(taskId = null) {
     .map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
     .join('');
 
+  document.getElementById('custom-datepicker').classList.remove('open');
   const delBtn = document.getElementById('delete-task-btn');
+
   if (taskId) {
     const t = state.tasks.find((item) => item.task_id === taskId);
     document.getElementById('task-modal-title').textContent = 'Редактировать задачу';
@@ -1011,15 +1479,19 @@ function openTaskModal(taskId = null) {
     document.getElementById('task-title').value = t.title;
     colSelect.value = t.column_id;
     document.getElementById('task-assignees').value = t.assignees || '';
-    document.getElementById('task-due-date').value = t.due_date || '';
+    setPickedDate(t.due_date || '');
     document.getElementById('task-due-time').value = t.due_time || '';
     document.getElementById('task-notes').value = t.notes || '';
-    delBtn.style.display = 'inline-block';
+    delBtn.style.display = 'inline-flex';
   } else {
     document.getElementById('task-modal-title').textContent = 'Новая задача';
     document.getElementById('task-form').reset();
     document.getElementById('task-id').value = '';
+    if (board.columns.some((c) => c.id === state.activeMobileColId)) {
+      colSelect.value = state.activeMobileColId;
+    }
     document.getElementById('task-assignees').value = state.userEmail || '';
+    setPickedDate('');
     delBtn.style.display = 'none';
   }
   document.getElementById('task-modal').showModal();
@@ -1069,6 +1541,7 @@ async function openNewBoardPrompt() {
   if (!title || !title.trim()) return;
   const board = await activeAdapter().createBoard(title.trim());
   state.activeBoardId = board.board_id;
+  savePersistentConfig();
   updateHashParams();
   populateTaskListSelector();
   renderBoardSelect();
@@ -1103,7 +1576,7 @@ function copyInviteLink() {
   params.set('board', state.activeBoardId);
   const url = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
   navigator.clipboard.writeText(url);
-  alert('Инвайт-ссылка скопирована!\n\nНе забудьте нажать «Открыть таблицу в Google» в настройках и выдать партнёру доступ «Редактор» по email.');
+  alert('Постоянная инвайт-ссылка скопирована!\n\nПартнёру достаточно открыть её один раз и войти в Google — дальше приложение запомнит доску даже при запуске с иконки на экране.\n\nНе забудьте выдать партнёру доступ «Редактор» в самой Google Таблице.');
 }
 
 function openSheetInBrowser() {
@@ -1125,32 +1598,80 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/**
+ * ============================================================================
+ * 7. STARTUP & FOCUS LISTENERS
+ * ============================================================================
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.mode === 'google') {
+    const now = Date.now();
+    if (now - state.lastFocusSync > 8000) {
+      state.lastFocusSync = now;
+      GoogleTasksSync.syncCurrentBoard().catch(() => {});
+    }
+  }
+});
+
 window.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
-  const localWs = await LocalStorageAdapter.loadWorkspace();
-  state.boards = localWs.boards;
-  state.tasks = localWs.tasks;
-  renderBoardSelect();
-  renderBoard();
-
+  // 1. Читаем параметры из URL hash (если пришли по инвайту) ИЛИ из постоянного localStorage
   const hashParams = parseHashParams();
   state.clientId = hashParams.clientId || localStorage.getItem('kb_client_id') || '';
   state.sheetId = hashParams.sheetId || localStorage.getItem('kb_sheet_id') || '';
-  if (hashParams.boardId) state.activeBoardId = hashParams.boardId;
+  state.activeBoardId = hashParams.boardId || localStorage.getItem('kb_active_board_id') || 'board_default';
+  state.userEmail = localStorage.getItem('kb_user_email') || '';
 
-  if (hashParams.clientId) localStorage.setItem('kb_client_id', hashParams.clientId);
-  if (hashParams.sheetId) localStorage.setItem('kb_sheet_id', hashParams.sheetId);
+  // Сразу сохраняем параметры инвайт-ссылки навсегда в localStorage и обновляем hash
+  savePersistentConfig();
+  if (state.clientId && state.sheetId) {
+    updateHashParams();
+  }
 
+  // 2. Если есть кэш общей таблицы Google — показываем сразу её, а не пустую локальную доску
+  const cachedWs = state.sheetId ? loadGoogleWorkspaceCache(state.sheetId) : null;
+  if (cachedWs && cachedWs.boards?.length) {
+    state.mode = 'cached';
+    state.boards = cachedWs.boards;
+    state.tasks = cachedWs.tasks || [];
+    state.syncMap = cachedWs.syncMap || [];
+    if (!state.boards.some((b) => b.board_id === state.activeBoardId)) {
+      state.activeBoardId = state.boards[0].board_id;
+    }
+    const badge = document.getElementById('mode-badge');
+    badge.textContent = 'Кэш Google';
+    badge.className = 'badge cached';
+    renderBoardSelect();
+    renderBoard();
+  } else {
+    const localWs = await LocalStorageAdapter.loadWorkspace();
+    state.boards = localWs.boards;
+    state.tasks = localWs.tasks;
+    renderBoardSelect();
+    renderBoard();
+  }
+
+  // 3. Восстанавливаем Google-сессию или запрашиваем токен автоматически
   const savedToken = sessionStorage.getItem('kb_access_token');
   const tokenExp = Number(sessionStorage.getItem('kb_token_exp') || 0);
+
   if (state.clientId && savedToken && Date.now() < tokenExp) {
     state.accessToken = savedToken;
     await activateGoogleMode();
-  } else if (hashParams.clientId && hashParams.sheetId) {
-    setStatus('Открыта инвайт-ссылка. Нажмите «Google / Настройки → Войти в Google».');
+  } else if (state.clientId) {
+    if (state.sheetId) {
+      showReconnectBanner(
+        state.userEmail
+          ? `Общая доска подключена (${state.userEmail}). Нажмите для синхронизации.`
+          : 'Общая доска подключена по инвайт-ссылке. Нажмите, чтобы войти в Google.'
+      );
+      setStatus('Ожидание входа в Google для синхронизации...');
+    }
+    // Пробуем тихое обновление токена после загрузки GIS-скрипта
+    setTimeout(() => connectGoogle(true), 800);
   }
 });
 </script>
