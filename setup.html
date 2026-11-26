@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Настройка Google Client ID — Taskban</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #475569;
+      --border: #e2e8f0; --primary: #2563eb; --code-bg: #f1f5f9;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #94a3b8;
+        --border: #334155; --primary: #3b82f6; --code-bg: #0f172a;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6;
+      margin: 0; padding: 24px 16px;
+    }
+    .container { max-width: 760px; margin: 0 auto; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    }
+    h1 { margin-top: 0; font-size: 1.5rem; }
+    ol { padding-left: 20px; }
+    li { margin-bottom: 14px; }
+    code {
+      background: var(--code-bg); padding: 2px 6px; border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em;
+    }
+    .origin-box {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      background: var(--code-bg); padding: 10px 12px; border-radius: 8px;
+      border: 1px solid var(--border); margin-top: 8px;
+    }
+    button, .btn {
+      background: var(--primary); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 0.9rem; cursor: pointer; text-decoration: none;
+      display: inline-block;
+    }
+    .note {
+      border-left: 4px solid var(--primary); padding: 10px 14px;
+      background: var(--code-bg); border-radius: 0 8px 8px 0; font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 16px;">
+      <a href="./index.html" class="btn">← Вернуться на доску</a>
+    </div>
+
+    <div class="card">
+      <h1>Подключение своего Google Cloud (бесплатно)</h1>
+      <p style="color: var(--muted);">
+        Taskban работает полностью в браузере без собственного сервера. Чтобы синхронизировать доски через Google Таблицы и Google Задачи, создайте свой бесплатный <strong>OAuth Client ID</strong> (занимает 3 минуты).
+      </p>
+      <div class="note">
+        <strong>Если вас пригласили по ссылке:</strong> создавать свой проект не нужно. Просто откройте присланную ссылку — <code>Client ID</code> подставится автоматически.
+      </div>
+    </div>
+
+    <div class="card">
+      <ol>
+        <li>
+          <strong>Создайте проект:</strong> откройте <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">Google Cloud Console</a>, введите любое название (например, <code>Taskban</code>) и нажмите <em>Create</em>.
+        </li>
+        <li>
+          <strong>Включите два API:</strong> перейдите в <em>APIs &amp; Services → Library</em>, найдите и нажмите <em>Enable</em> для:
+          <ul>
+            <li><code>Google Tasks API</code></li>
+            <li><code>Google Sheets API</code></li>
+          </ul>
+        </li>
+        <li>
+          <strong>Настройте экран согласия (OAuth consent screen):</strong>
+          <ul>
+            <li>Выберите тип <strong>External</strong> → <em>Create</em>.</li>
+            <li>Заполните название приложения и ваш email в полях поддержки и разработчика.</li>
+            <li>На шаге <em>Scopes</em> добавьте: <code>.../auth/tasks</code>, <code>.../auth/drive.file</code> и <code>email</code>.</li>
+            <li><strong>Важно:</strong> на вкладке <em>OAuth consent screen</em> нажмите кнопку <strong>Publish App</strong> (перевод в статус <em>In Production</em>). Иначе авторизация будет сбрасываться каждые 7 дней. Проходить верификацию Google не нужно (лимит до 100 пользователей).</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Создайте Client ID:</strong> перейдите в <em>Credentials → Create Credentials → OAuth client ID</em>, выберите тип <strong>Web application</strong>. В поле <strong>Authorized JavaScript origins</strong> вставьте строго этот адрес (без пути и без слэша на конце):
+          <div class="origin-box">
+            <code id="origin-val"></code>
+            <button type="button" onclick="copyOrigin()">Скопировать</button>
+          </div>
+        </li>
+        <li>
+          <strong>Подключите в приложении:</strong> скопируйте сгенерированный <code>Client ID</code> (вида <code>123456-xxxx.apps.googleusercontent.com</code>), вернитесь на доску, откройте <em>Настройки Google</em> и вставьте его.
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const originEl = document.getElementById('origin-val');
+    originEl.textContent = window.location.origin;
+    function copyOrigin() {
+      navigator.clipboard.writeText(window.location.origin);
+      alert('Скопировано: ' + window.location.origin);
+    }
+  </script>
+</body>
+</html>

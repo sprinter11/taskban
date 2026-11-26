@@ -1,2 +1,13 @@
-# taskban
-Serverless Kanban PWA synced with Google Sheets and Google Tasks
+# Taskban
+
+Бессерверный PWA-планировщик с канбан-досками поверх **Google Таблиц** и **Google Задач (Google Tasks)** с отображением в **Google Календаре**.
+
+- **Демо / Приложение (после включения GitHub Pages):** `https://sprinter11.github.io/taskban/`
+- **Инструкция по настройке Google Client ID:** `https://sprinter11.github.io/taskban/setup.html`
+
+## Возможности
+- **Локальный режим по умолчанию:** мгновенно работает в `localStorage` без регистрации и привязки аккаунта.
+- **BYO Google Client ID:** каждый пользователь подключает собственный бесплатный OAuth Client ID из Google Cloud Console (без ограничений на число пользователей и без собственного бэкенда).
+- **Совместные доски через Google Таблицы:** доски, колонки и задачи хранятся в одной Google Таблице (`boards`, `tasks`, `sync_map`), расшаренной между участниками.
+- **Интеграция с Google Tasks и Календарём:** двусторонняя синхронизация карточек с выбранным списком Google Задач.
+- **Инвайт-ссылки через URL Hash (`#`):** передают `client_id`, `sheet` и `board` партнёру без утечки параметров на сервер.
